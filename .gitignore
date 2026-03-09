@@ -1,0 +1,6 @@
+*.pdf
+.python-version
+.idea
+.vscode
+.venv
+uv.lock
