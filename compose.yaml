@@ -2,13 +2,39 @@ services:
   postgres:
     image: postgres:18.3-alpine
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
-        # In a production environment these would not be hardcoded into the compose file
-        POSTGRES_USER: uniofsheffield
-        POSTGRES_PASSWORD: jessop
+      # In a production environment these would not be hardcoded into the compose file
+      POSTGRES_USER: uniofsheffield
+      POSTGRES_PASSWORD: jessop
     volumes:
       - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U uniofsheffield" ]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 3s
+
+  db_init:
+    build:
+      context: .
+      dockerfile: ./db_init/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db_init:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
 
 volumes:
   postgres-data:

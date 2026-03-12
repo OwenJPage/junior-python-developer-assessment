@@ -1,0 +1,8 @@
+.venv
+*.pdf
+*.md
+uv.lock
+
+.idea
+.vscode
+.gitignore
