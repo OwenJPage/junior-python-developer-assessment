@@ -15,6 +15,3 @@ api = [
 dev = [
     "ruff>=0.15.5",
 ]
-
-[tool.uv]
-default-groups = []

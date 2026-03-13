@@ -5,6 +5,6 @@ WORKDIR /app
 
 COPY shared api pyproject.toml ./
 
-RUN uv sync --group api
+RUN uv sync --group api --no-dev
 
 CMD ["./.venv/bin/python", "main.py"]

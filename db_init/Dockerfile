@@ -5,6 +5,6 @@ WORKDIR /app
 
 COPY shared db_init pyproject.toml ./
 
-RUN uv sync
+RUN uv sync --no-dev
 
 CMD ["./.venv/bin/python", "main.py"]
