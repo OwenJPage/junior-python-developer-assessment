@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18.3-alpine
+    image: postgres:18.3
     ports:
       - "5432:5432"
     environment:
@@ -19,7 +19,7 @@ services:
   db_init:
     build:
       context: .
-      dockerfile: ./db_init/Dockerfile
+      dockerfile: db_init/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,7 +27,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: ./api/Dockerfile
+      dockerfile: api/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,6 +35,14 @@ services:
         condition: service_completed_successfully
     ports:
       - "8000:8000"
+
+  etl:
+    build:
+      context: .
+      dockerfile: etl/Dockerfile
+    depends_on:
+      db_init:
+        condition: service_completed_successfully
 
 volumes:
   postgres-data:

@@ -6,3 +6,4 @@ uv.lock
 .idea
 .vscode
 .gitignore
+.dockerignore

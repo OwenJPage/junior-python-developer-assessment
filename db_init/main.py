@@ -1,10 +1,14 @@
 import asyncio
+import itertools
 import logging
+import random
 from dataclasses import dataclass
 from enum import Enum
 from typing import Iterable
 
 import psycopg
+
+from shared.table import Table
 
 
 class CustomerStatus(Enum):
@@ -142,19 +146,100 @@ async def main():
     ) as conn:
         logger.info("Connected to PostgreSQL")
 
-        customer_table = CustomerTable(conn)
+        async with conn.cursor() as cur:
+            try:
+                logger.info("Creating customer_status enum type")
+                await cur.execute(
+                    "CREATE TYPE customer_status AS ENUM ('active', 'suspended', 'archived');"
+                )
+            except psycopg.errors.DuplicateObject:
+                logger.warning("Enum customer_status already exists, skipping")
 
-        await customer_table.initialise()
+            logger.debug("Committing")
+            await conn.commit()
 
-        new_customer = Customer(
-            None,
-            "Jane",
-            "Austen",
-            "janeausten@waterstones.co.uk",
-            CustomerStatus("active"),
+        customer_table = Table(
+            "Customers",
+            fields={
+                "id": {"pg_type": "serial", "extra": "PRIMARY KEY"},
+                "first_name": "text",
+                "last_name": "text",
+                "email": "text",
+                "status": "customer_status",
+            },
         )
 
-        await customer_table.insert(new_customer)
+        await customer_table.bind(conn)
+
+        if await customer_table.is_empty():
+            f_names = ["John", "Oliver", "Jane", "Louis"]
+            l_names = ["Smith", "Gold", "Frost", "Webb"]
+
+            names = random.sample([*itertools.product(f_names, l_names)], k=10)
+
+            for first, last in names:
+                new_customer = {
+                    "first_name": first,
+                    "last_name": last,
+                    "email": f"{first}{last}@sheffield.ac.uk",
+                    "status": "active",
+                }
+
+                new_id = await customer_table.insert(
+                    new_customer, return_fields=("id",)
+                )
+
+                print(new_id)
+
+        print(await customer_table.get_row(id=2))
+
+        orders_table = Table(
+            "Orders",
+            fields={
+                "id": {"pg_type": "serial", "extra": "PRIMARY KEY"},
+                "customer_id": {
+                    "pg_type": "int",
+                    "extra": "NOT NULL REFERENCES Customers",
+                },
+                "product_name": "text",
+                "quantity": {"pg_type": "int", "extra": "check (quantity >= 0)"},
+                "unit_price": {"pg_type": "numeric", "extra": "check (quantity >= 0)"},
+            },
+        )
+
+        await orders_table.bind(conn)
+
+
+# async def main():
+#     logger = logging.getLogger("async_thread")
+#     logger.debug("Started async runtime")
+#
+#     logger.info("Connecting to PostgreSQL")
+#     async with await psycopg.AsyncConnection.connect(
+#         host="postgres",
+#         port=5432,
+#         user="uniofsheffield",
+#         password="jessop",
+#         dbname="uniofsheffield",
+#     ) as conn:
+#         logger.info("Connected to PostgreSQL")
+#
+#         customer_table = CustomerTable(conn)
+#
+#         await customer_table.initialise()
+#
+#         new_customer = Customer(
+#             None,
+#             "Jane",
+#             "Austen",
+#             "janeausten@waterstones.co.uk",
+#             CustomerStatus("active"),
+#         )
+#
+#         await customer_table.insert(new_customer)
+#
+#     while True:
+#         pass
 
 
 # def main():
